@@ -10,6 +10,8 @@ import AddCommentNode from './nodes/AddCommentNode.vue'
 import BusinessHoursNode from './nodes/BusinessHoursNode.vue'
 import ConnectorNode from './nodes/ConnectorNode.vue'
 
+const emit = defineEmits(['node-click'])
+
 const { data } = useQuery({
   queryKey: ['flow'],
   queryFn: async () => {
@@ -31,7 +33,13 @@ const edges = computed(() => toFlowEdges(data.value ?? []))
 </script>
 
 <template>
-  <VueFlow class="vue-flow" :nodes="nodes" :edges="edges" :node-types="nodeTypes" />
+  <VueFlow
+    class="vue-flow"
+    :nodes="nodes"
+    :edges="edges"
+    :node-types="nodeTypes"
+    @node-click="emit('node-click', $event)"
+  />
 </template>
 
 <style>
@@ -42,5 +50,22 @@ const edges = computed(() => toFlowEdges(data.value ?? []))
   background-color: #f0f0f0;
   height: 100%;
   width: 100%;
+}
+
+.fc-node {
+  width: 180px;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  font-size: 12px;
+}
+.fc-node__title {
+  font-weight: 600;
+}
+.fc-node__desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
