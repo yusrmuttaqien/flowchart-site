@@ -1,8 +1,10 @@
 <script setup>
-import { computed, markRaw } from 'vue'
+import { computed, markRaw, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { VueFlow } from '@vue-flow/core'
+
 import { toFlowNodes, toFlowEdges } from '../utils/flow.js'
+import { useFlowStore } from '../stores/flow.js'
 
 import TriggerNode from './nodes/TriggerNode.vue'
 import SendMessageNode from './nodes/SendMessageNode.vue'
@@ -12,6 +14,7 @@ import ConnectorNode from './nodes/ConnectorNode.vue'
 
 const emit = defineEmits(['node-click'])
 
+const store = useFlowStore()
 const { data } = useQuery({
   queryKey: ['flow'],
   queryFn: async () => {
@@ -28,8 +31,16 @@ const nodeTypes = {
   businessHours: markRaw(BusinessHoursNode),
   connector: markRaw(ConnectorNode),
 }
-const nodes = computed(() => toFlowNodes(data.value ?? []))
-const edges = computed(() => toFlowEdges(data.value ?? []))
+
+watch(
+  () => data.value,
+  (payload) => {
+    if (payload) store.init(payload)
+  },
+)
+
+const nodes = computed(() => toFlowNodes(store.nodes))
+const edges = computed(() => toFlowEdges(store.nodes))
 </script>
 
 <template>

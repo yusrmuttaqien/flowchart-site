@@ -1,9 +1,12 @@
 <script setup>
-import { computed, Transition } from 'vue'
+import { computed, Transition, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import FlowCanvas from '../components/FlowCanvas.vue'
 import NodeDetails from '../components/NodeDetails.vue'
+import CreateNodeModal from '../components/CreateNodeModal.vue'
+
+const showCreate = ref(false)
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +27,9 @@ function onNodeClick({ node }) {
   <Transition>
     <NodeDetails :node-id="selectedNodeId" v-if="selectedNodeId" />
   </Transition>
+
+  <button class="create-btn" @click="showCreate = true">+ Create New Node</button>
+  <CreateNodeModal v-if="showCreate" @close="showCreate = false" />
 </template>
 
 <style scoped>
@@ -35,5 +41,17 @@ function onNodeClick({ node }) {
 .v-enter-from,
 .v-leave-to {
   transform: translateX(100%);
+}
+
+.create-btn {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 5;
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
 }
 </style>

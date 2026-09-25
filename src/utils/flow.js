@@ -74,7 +74,7 @@ export function toFlowNodes(payload) {
  */
 export function toFlowEdges(payload) {
   return payload
-    .filter((node) => node.parentId !== -1)
+    .filter((node) => node.parentId != null && node.parentId !== -1)
     .map((node) => ({
       id: `e-${String(node.parentId)}-${String(node.id)}`,
       source: String(node.parentId),
