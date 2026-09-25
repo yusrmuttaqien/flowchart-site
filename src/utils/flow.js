@@ -2,7 +2,7 @@
  * @typedef {Object} PayloadNode
  * @property {string|number} id
  * @property {string|number} parentId  -1 for the root (trigger)
- * @property {string} [name]            absent on some nodes (e.g. trigger)
+ * @property {string} name
  * @property {'trigger'|'sendMessage'|'dateTime'|'addComment'|'dateTimeConnector'} type
  * @property {Object} data
  */
@@ -61,8 +61,9 @@ export function toFlowNodes(payload) {
       id: String(node.id),
       type: NODE_TYPE_MAP[node.type] ?? 'default',
       position: { x: depth * COL_WIDTH, y: row * ROW_HEIGHT },
-      // pass the original payload through; renderers read data.name / data.data
-      data: { name: node.name, raw: node },
+      // renderers read the shared envelope (name, description);
+      // ConnectorNode also reads raw for its success/failure icon
+      data: { name: node.name, description: node.description, raw: node },
     }
   })
 }
