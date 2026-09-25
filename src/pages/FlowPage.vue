@@ -1,12 +1,14 @@
 <script setup>
 import { computed, Transition, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useFlowStore } from '../stores/flow.js'
 
 import FlowCanvas from '../components/FlowCanvas.vue'
 import NodeDetails from '../components/NodeDetails.vue'
 import CreateNodeModal from '../components/CreateNodeModal.vue'
 
 const showCreate = ref(false)
+const store = useFlowStore()
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +32,11 @@ function onNodeClick({ node }) {
   </Transition>
 
   <button class="create-btn" @click="showCreate = true">+ Create New Node</button>
+
+  <div class="toolbar">
+    <button :disabled="!store.canUndo" @click="store.undo()">↩ Undo</button>
+    <button :disabled="!store.canRedo" @click="store.redo()">↪ Redo</button>
+  </div>
   <CreateNodeModal v-if="showCreate" @close="showCreate = false" />
 </template>
 
@@ -54,5 +61,27 @@ function onNodeClick({ node }) {
   border-radius: 6px;
   background: white;
   cursor: pointer;
+}
+
+.toolbar {
+  position: absolute;
+  top: 16px;
+  left: 170px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar button {
+  padding: 8px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+}
+
+.toolbar button:disabled {
+  color: #94a3b8;
+  cursor: default;
 }
 </style>

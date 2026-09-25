@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFlowStore } from '../stores/flow.js'
 
@@ -9,22 +9,47 @@ const router = useRouter()
 
 const node = computed(() => store.nodeById(props.nodeId))
 
-// ---- sendMessage: message content (text part of the payload) ----
-// Writable computed: one UI field projecting onto the nested payload array.
-// The .map preserves every non-text part (attachments) when text changes.
-const messageText = computed({
-  get: () => {
-    const t = (node.value?.data.payload ?? []).find((p) => p.type === 'text')
-    return t ? t.text : ''
+// Text fields are local state, committed to the store on change (blur/Enter).
+// This keeps undo/redo granularity at "user intent", not per keystroke.
+const title = ref('')
+const description = ref('')
+const comment = ref('')
+const messageText = ref('')
+
+watch(
+  node,
+  (n) => {
+    if (!n) return
+    title.value = n.name ?? ''
+    description.value = n.description ?? ''
+    comment.value = n.type === 'addComment' ? (n.data.comment ?? '') : ''
+    const t =
+      n.type === 'sendMessage'
+        ? (n.data.payload ?? []).find((p) => p.type === 'text')
+        : null
+    messageText.value = t ? t.text : ''
   },
-  set: (val) => {
-    const n = node.value
-    const payload = (n.data.payload ?? []).map((p) =>
-      p.type === 'text' ? { ...p, text: val } : p,
-    )
-    store.updateNode(n.id, { data: { ...n.data, payload } })
-  },
-})
+  { immediate: true },
+)
+
+function commitTitle() {
+  store.updateNode(node.value.id, { name: title.value })
+}
+function commitDescription() {
+  store.updateNode(node.value.id, { description: description.value })
+}
+function commitComment() {
+  store.updateNode(node.value.id, { data: { ...node.value.data, comment: comment.value } })
+}
+// Commits the text part of the payload, preserving every non-text part
+// (attachments) via .map.
+function commitMessage() {
+  const n = node.value
+  const payload = (n.data.payload ?? []).map((p) =>
+    p.type === 'text' ? { ...p, text: messageText.value } : p,
+  )
+  store.updateNode(n.id, { data: { ...n.data, payload } })
+}
 
 // ---- sendMessage: attachments ----
 const attachments = computed(() =>
@@ -96,12 +121,12 @@ function deleteNode() {
 
     <label class="field">
       Title
-      <input v-model="node.name" type="text" />
+      <input v-model="title" type="text" @change="commitTitle" />
     </label>
 
     <label class="field">
       Description
-      <textarea v-model="node.description" rows="3"></textarea>
+      <textarea v-model="description" rows="3" @change="commitDescription"></textarea>
     </label>
 
     <!-- type-specific sections -->
@@ -109,7 +134,7 @@ function deleteNode() {
     <section v-if="node.type === 'sendMessage'" class="section">
       <label class="field">
         Message Content
-        <textarea v-model="messageText" rows="3"></textarea>
+        <textarea v-model="messageText" rows="3" @change="commitMessage"></textarea>
       </label>
 
       <div class="attachments">
@@ -129,7 +154,7 @@ function deleteNode() {
     <section v-else-if="node.type === 'addComment'" class="section">
       <label class="field">
         Comment
-        <textarea v-model="node.data.comment" rows="3"></textarea>
+        <textarea v-model="comment" rows="3" @change="commitComment"></textarea>
       </label>
     </section>
 
