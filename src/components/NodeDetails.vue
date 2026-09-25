@@ -1,11 +1,21 @@
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFlowStore } from '../stores/flow.js'
 
 const props = defineProps({ nodeId: String })
 const store = useFlowStore()
 const router = useRouter()
+const titleInputRef = ref(null)
+
+// Keyboard a11y: focus the title field on open; Escape closes the drawer.
+onMounted(() => titleInputRef.value?.focus())
+function closeDrawer() {
+  router.push('/')
+}
+function onKeydown(e) {
+  if (e.key === 'Escape') closeDrawer()
+}
 
 const node = computed(() => store.nodeById(props.nodeId))
 
@@ -116,12 +126,18 @@ function deleteNode() {
 </script>
 
 <template>
-  <aside v-if="node" class="node-details">
+  <aside
+    v-if="node"
+    class="node-details"
+    role="complementary"
+    aria-label="Node details"
+    @keydown="onKeydown"
+  >
     <h2>Node Details</h2>
 
     <label class="field">
       Title
-      <input v-model="title" type="text" @change="commitTitle" />
+      <input ref="titleInputRef" v-model="title" type="text" @change="commitTitle" />
     </label>
 
     <label class="field">

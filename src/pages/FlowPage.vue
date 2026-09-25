@@ -1,5 +1,5 @@
 <script setup>
-import { computed, Transition, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFlowStore } from '../stores/flow.js'
 
