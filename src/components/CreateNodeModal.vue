@@ -2,6 +2,11 @@
 import { reactive, computed, ref, onMounted } from 'vue'
 import { useFlowStore } from '../stores/flow.js'
 
+// parentId is the node the + was clicked on (null for the top-level button).
+const props = defineProps({
+  parentId: { type: [String, Number], default: null },
+})
+
 const emit = defineEmits(['close'])
 const store = useFlowStore()
 const firstFieldRef = ref(null)
@@ -31,8 +36,8 @@ function createPayloadNode(f) {
   const base = {
     id: crypto.randomUUID(),
     name: f.title.trim(),
-    description: f.description.trim(), // ← this line
-    parentId: null,
+    description: f.description.trim(),
+    parentId: props.parentId ?? null,
   }
 
   if (f.type === 'sendMessage')

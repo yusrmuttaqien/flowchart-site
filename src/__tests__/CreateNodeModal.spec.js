@@ -100,4 +100,17 @@ describe('CreateNodeModal', () => {
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })
+
+  it('sets the parentId from the + that opened it', async () => {
+    const wrapper = mount(CreateNodeModal, {
+      props: { parentId: 'd09c08' },
+      global: { plugins: [createPinia()] },
+    })
+    const store = useFlowStore()
+    wrapper.find('input[type="text"]').setValue('Child')
+    wrapper.find('textarea').setValue('A child message')
+    await wrapper.find('button[type="submit"]').trigger('submit')
+
+    expect(store.nodes[0].parentId).toBe('d09c08')
+  })
 })

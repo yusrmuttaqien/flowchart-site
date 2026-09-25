@@ -1,5 +1,5 @@
 <script setup>
-defineProps({ data: Object })
+defineProps({ data: Object, id: String })
 </script>
 
 <template>
@@ -11,5 +11,13 @@ defineProps({ data: Object })
       <div class="fc-node__title">{{ data.name || 'Connector' }}</div>
       <div class="fc-node__desc">{{ data.description }}</div>
     </div>
+    <button
+      class="fc-node__add"
+      title="Add child node"
+      aria-label="Add child node"
+      @click.stop="data.onAddChild(id)"
+    >
+      +
+    </button>
   </div>
 </template>

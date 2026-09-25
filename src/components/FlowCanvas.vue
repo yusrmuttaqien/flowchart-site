@@ -12,7 +12,7 @@ import AddCommentNode from './nodes/AddCommentNode.vue'
 import BusinessHoursNode from './nodes/BusinessHoursNode.vue'
 import ConnectorNode from './nodes/ConnectorNode.vue'
 
-const emit = defineEmits(['node-click'])
+const emit = defineEmits(['node-click', 'add-child'])
 
 const STORAGE_KEY = 'flowchart-site:nodes:v1'
 
@@ -60,7 +60,14 @@ watch(
   },
 )
 
-const nodes = computed(() => toFlowNodes(store.nodes))
+// Thread an add-child handler into each node's data so the + button on a
+// node can ask FlowPage to open the create modal with this node as parent.
+const nodes = computed(() =>
+  toFlowNodes(store.nodes).map((n) => ({
+    ...n,
+    data: { ...n.data, onAddChild: (id) => emit('add-child', id) },
+  })),
+)
 const edges = computed(() => toFlowEdges(store.nodes))
 </script>
 
@@ -85,12 +92,37 @@ const edges = computed(() => toFlowEdges(store.nodes))
 }
 
 .fc-node {
+  position: relative;
   width: 180px;
   padding: 8px;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: white;
   font-size: 12px;
+}
+
+/* The + sits centered on the node's bottom edge (the outgoing connector). */
+.fc-node__add {
+  position: absolute;
+  bottom: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  background: white;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.fc-node__add:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 .fc-node__title {
   font-weight: 600;

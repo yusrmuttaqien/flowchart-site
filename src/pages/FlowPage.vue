@@ -8,7 +8,18 @@ import NodeDetails from '../components/NodeDetails.vue'
 import CreateNodeModal from '../components/CreateNodeModal.vue'
 
 const showCreate = ref(false)
+const createParentId = ref(null)
 const store = useFlowStore()
+
+// The + on a node opens the create modal with that node locked in as parent.
+function onAddChild(parentId) {
+  createParentId.value = parentId
+  showCreate.value = true
+}
+function closeCreate() {
+  showCreate.value = false
+  createParentId.value = null
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -26,18 +37,18 @@ function onNodeClick({ node }) {
 </script>
 
 <template>
-  <FlowCanvas @node-click="onNodeClick" />
+  <FlowCanvas @node-click="onNodeClick" @add-child="onAddChild" />
   <Transition>
     <NodeDetails :node-id="selectedNodeId" v-if="selectedNodeId" />
   </Transition>
 
-  <button class="create-btn" @click="showCreate = true">+ Create New Node</button>
+  <button class="create-btn" @click="onAddChild(null)">+ Create New Node</button>
 
   <div class="toolbar">
     <button :disabled="!store.canUndo" @click="store.undo()">↩ Undo</button>
     <button :disabled="!store.canRedo" @click="store.redo()">↪ Redo</button>
   </div>
-  <CreateNodeModal v-if="showCreate" @close="showCreate = false" />
+  <CreateNodeModal v-if="showCreate" :parent-id="createParentId" @close="closeCreate" />
 </template>
 
 <style scoped>
