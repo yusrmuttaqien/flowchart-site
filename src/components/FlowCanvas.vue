@@ -68,6 +68,12 @@ const nodes = computed(() =>
     data: { ...n.data, onAddChild: (id) => emit('add-child', id) },
   })),
 )
+
+// Persist a dragged node's position: vue-flow reports the final position on
+// drag-stop; saving it to the store makes toFlowNodes (and localStorage) keep it.
+function onDragStop({ node }) {
+  store.updateNode(node.id, { position: { ...node.position } })
+}
 const edges = computed(() => toFlowEdges(store.nodes))
 </script>
 
@@ -78,6 +84,7 @@ const edges = computed(() => toFlowEdges(store.nodes))
     :edges="edges"
     :node-types="nodeTypes"
     @node-click="emit('node-click', $event)"
+    @node-drag-stop="onDragStop"
   />
 </template>
 

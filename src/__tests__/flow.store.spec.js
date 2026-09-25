@@ -66,6 +66,15 @@ describe('flow store', () => {
     expect(store.canUndo).toBe(false) // no snapshot taken
   })
 
+  it('updateNode saves a drag position and it is undoable', () => {
+    const store = useFlowStore()
+    store.init(makePayload())
+    store.updateNode('d09c08', { position: { x: 123, y: 456 } })
+    expect(store.nodeById('d09c08')?.position).toEqual({ x: 123, y: 456 })
+    store.undo()
+    expect(store.nodeById('d09c08')?.position).toBeUndefined()
+  })
+
   it('deleteNode removes by String(id)', () => {
     const store = useFlowStore()
     store.init(makePayload())

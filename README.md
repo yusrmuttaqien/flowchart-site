@@ -96,6 +96,10 @@ Each mutating action (`addNode` / `updateNode` / `deleteNode`) pushes a deep clo
 
 A deep `watch` on the store's `nodes` writes to localStorage on every change. On load, a saved copy **wins over** the seed payload; corrupt data falls through to the fetch. Attachments are stored as **data URLs** (via `FileReader`) so they survive persistence without a backend.
 
+### Node positions persist
+
+Positions are normally **computed** from the tree layout (`toFlowNodes`: depth × 250px, row × 120px) — the payload has none. When a node is dragged, `@node-drag-stop` saves its final position onto the node (`store.updateNode(id, { position })`). `toFlowNodes` then prefers a saved `node.position` over the computed layout, so dragged nodes keep their spot across reloads. Because the position lives in the store, it's persisted by the same watch and is **undoable** (one drag = one undo step). Nodes that were never dragged still use the computed layout.
+
 ### Attachments have no backend
 
 "Upload new attachments" is mocked: files are read as data URLs and stored on the node. No server round-trip.
