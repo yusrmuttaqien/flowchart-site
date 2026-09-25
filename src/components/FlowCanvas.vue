@@ -14,15 +14,36 @@ import ConnectorNode from './nodes/ConnectorNode.vue'
 
 const emit = defineEmits(['node-click'])
 
+const STORAGE_KEY = 'flowchart-site:nodes:v1'
+
 const store = useFlowStore()
 const { data } = useQuery({
   queryKey: ['flow'],
   queryFn: async () => {
+    // Persistence: a saved copy wins over the seed payload; corrupt data
+    // falls through to the fetch.
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch {
+        localStorage.removeItem(STORAGE_KEY)
+      }
+    }
     const res = await fetch(`${import.meta.env.BASE_URL}payload.json`)
     if (!res.ok) throw new Error(`payload fetch failed: ${res.status}`)
     return res.json()
   },
 })
+
+// Save on every change (deep — nodes are nested).
+watch(
+  () => store.nodes,
+  (nodes) => {
+    if (nodes.length) localStorage.setItem(STORAGE_KEY, JSON.stringify(nodes))
+  },
+  { deep: true },
+)
 
 const nodeTypes = {
   trigger: markRaw(TriggerNode),
