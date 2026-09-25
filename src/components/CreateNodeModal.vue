@@ -21,7 +21,13 @@ const errors = computed(() => {
 })
 
 function createPayloadNode(f) {
-  const base = { id: crypto.randomUUID(), name: f.title.trim(), parentId: null }
+  const base = {
+    id: crypto.randomUUID(),
+    name: f.title.trim(),
+    description: f.description.trim(), // ← this line
+    parentId: null,
+  }
+
   if (f.type === 'sendMessage')
     return {
       ...base,

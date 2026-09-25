@@ -10,7 +10,7 @@ const hours = computed(() => {
   <div class="fc-node">
     <span class="fc-node__icon">🕐</span>
     <div>
-      <div class="fc-node__title">Business Hours</div>
+      <div class="fc-node__title">{{data.name || 'Business Hours'}}</div>
       <div class="fc-node__desc">{{ hours }} days.</div>
     </div>
   </div>

@@ -2,8 +2,6 @@
   {
     "id": 1,
     "parentId": -1,
-    "name": "Conversation Opened",
-    "description": "Conversation opened",
     "type": "trigger",
     "data": {
       "type": "conversationOpened",
@@ -12,7 +10,6 @@
   },
   {
     "name": "Away Message",
-    "description": "Away message",
     "id": "b6a0c1",
     "type": "sendMessage",
     "data": {
@@ -27,7 +24,6 @@
   },
   {
     "name": "Business Hours",
-    "description": "Business hours check",
     "id": "d09c08",
     "type": "dateTime",
     "data": {
@@ -76,7 +72,6 @@
   },
   {
     "name": "Success",
-    "description": "Success",
     "id": "161f52",
     "type": "dateTimeConnector",
     "data": {
@@ -86,7 +81,6 @@
   },
   {
     "name": "Failure",
-    "description": "Failure",
     "id": "28c4b9",
     "type": "dateTimeConnector",
     "data": {
@@ -96,7 +90,6 @@
   },
   {
     "name": "Welcome Message",
-    "description": "Welcome message",
     "id": "b0653a",
     "type": "sendMessage",
     "data": {
@@ -118,7 +111,6 @@
     "type": "addComment",
     "parentId": "b6a0c1",
     "name": "Add Comment #1",
-    "description": "User message during off hours",
     "data": {
       "comment": "User message during off hours"
     }

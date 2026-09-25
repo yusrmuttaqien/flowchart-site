@@ -13,6 +13,7 @@ const router = useRouter()
 const selectedNodeId = computed(() => route.params.nodeId ?? null)
 
 function onNodeClick({ node }) {
+  if (node.type === 'connector') return // display-only, per spec
   // clicking the selected node again closes the drawer (toggle, per spec)
   if (node.id === selectedNodeId.value) {
     router.push('/')

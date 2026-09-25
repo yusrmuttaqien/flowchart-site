@@ -11,7 +11,7 @@ export const useFlowStore = defineStore('flow', {
   },
   actions: {
     init(payload) {
-      this.nodes = payload
+      this.nodes = JSON.parse(JSON.stringify(payload))
     },
     addNode(node) {
       this.nodes.push(node)
