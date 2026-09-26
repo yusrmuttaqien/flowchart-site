@@ -22,6 +22,7 @@ describe('App', () => {
     })
     await router.isReady()
 
-    expect(wrapper.text()).toContain('Create New Node')
+    // The toolbar (Undo/Redo) is always present on the flow page.
+    expect(wrapper.text()).toContain('Undo')
   })
 })

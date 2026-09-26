@@ -41,8 +41,7 @@ npm run dev        # start the dev server (http://localhost:5173)
 - **Click a node** → the Details drawer opens and the URL becomes `/#/<nodeId>` (deep-linkable).
 - **Click the same node again**, press **Esc**, or hit the browser **back** button → the drawer closes and the URL returns to `/`.
 - **Connector nodes** (Success/Failure) are display-only — clicking them does nothing, per the spec.
-- **"+ Create New Node"** opens a modal to add a top-level `sendMessage`, `addComment`, or business-hours node.
-- **The `+` on a node's bottom edge** opens the same modal with that node locked in as the parent — the new node is created as its child and the connecting edge is derived automatically. Every node (including connectors) has one.
+- **The `+` on a node's bottom edge** opens the create modal with that node locked in as the parent — the new node is created as its child and the connecting edge is derived automatically. Every node (including connectors) has one. (There is no separate top-level "add" button: in a tree every new node is a child of an existing one.)
 - **Undo / Redo** revert/redo the last node change (intent-granular, not per-keystroke).
 - Edits and the node graph **persist to localStorage** and survive a reload (a saved copy wins over the seed payload).
 
@@ -82,7 +81,7 @@ The payload mixes numeric ids (`1`) and string ids (`'d09c08'`). Everything goes
 
 ### Adding a node is adding a child
 
-The graph is a tree, so "connect a node" means "give it a parent." Each node renders a `+` on its bottom edge (the outgoing connector); clicking it opens the create modal with `parentId` locked to that node. The new node's `parentId` is set, and `toFlowEdges` derives the connecting edge — no separate edge machinery. The handler is threaded into each node's vue-flow `data` as `onAddChild`, emitted up through `FlowCanvas` to `FlowPage`, which opens the modal. The top-level "+ Create New Node" button is the same path with `parentId: null`.
+The graph is a tree, so "connect a node" means "give it a parent." Each node renders a `+` on its bottom edge (the outgoing connector); clicking it opens the create modal with `parentId` locked to that node. The new node's `parentId` is set, and `toFlowEdges` derives the connecting edge — no separate edge machinery. The handler is threaded into each node's vue-flow `data` as `onAddChild`, emitted up through `FlowCanvas` to `FlowPage`, which opens the modal.
 
 ### The Details drawer is a route, not a boolean
 

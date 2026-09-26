@@ -42,8 +42,6 @@ function onNodeClick({ node }) {
     <NodeDetails :node-id="selectedNodeId" v-if="selectedNodeId" />
   </Transition>
 
-  <button class="create-btn" @click="onAddChild(null)">+ Create New Node</button>
-
   <div class="toolbar">
     <button :disabled="!store.canUndo" @click="store.undo()">↩ Undo</button>
     <button :disabled="!store.canRedo" @click="store.redo()">↪ Redo</button>
@@ -62,22 +60,10 @@ function onNodeClick({ node }) {
   transform: translateX(100%);
 }
 
-.create-btn {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 5;
-  padding: 8px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  background: white;
-  cursor: pointer;
-}
-
 .toolbar {
   position: absolute;
   top: 16px;
-  left: 170px;
+  left: 16px;
   z-index: 5;
   display: flex;
   gap: 8px;
