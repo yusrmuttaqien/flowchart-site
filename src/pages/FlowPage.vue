@@ -10,6 +10,7 @@ import CreateNodeModal from '../components/CreateNodeModal.vue'
 const showCreate = ref(false)
 const createParentId = ref(null)
 const store = useFlowStore()
+const flowCanvasRef = ref(null)
 
 // The + on a node opens the create modal with that node locked in as parent.
 function onAddChild(parentId) {
@@ -25,6 +26,16 @@ const route = useRoute()
 const router = useRouter()
 const selectedNodeId = computed(() => route.params.nodeId ?? null)
 
+// Reset: clear persisted state, reload the seed payload, reset the viewport.
+async function onReset() {
+  localStorage.removeItem('flowchart-site:nodes:v1')
+  localStorage.removeItem('flowchart-site:viewport:v1')
+  const res = await fetch(`${import.meta.env.BASE_URL}payload.json`)
+  if (!res.ok) return
+  store.init(await res.json())
+  flowCanvasRef.value?.resetViewport()
+}
+
 function onNodeClick({ node }) {
   if (node.type === 'connector') return // display-only, per spec
   // clicking the selected node again closes the drawer (toggle, per spec)
@@ -37,12 +48,13 @@ function onNodeClick({ node }) {
 </script>
 
 <template>
-  <FlowCanvas @node-click="onNodeClick" @add-child="onAddChild" />
+  <FlowCanvas ref="flowCanvasRef" @node-click="onNodeClick" @add-child="onAddChild" />
   <NodeDetails :node-id="selectedNodeId" v-if="selectedNodeId" />
 
   <div class="toolbar">
     <button :disabled="!store.canUndo" @click="store.undo()">↩ Undo</button>
     <button :disabled="!store.canRedo" @click="store.redo()">↪ Redo</button>
+    <button @click="onReset">↺ Reset</button>
   </div>
   <CreateNodeModal v-if="showCreate" :parent-id="createParentId" @close="closeCreate" />
 </template>
