@@ -49,10 +49,22 @@ function getNewNodePosition() {
   const flowNodes = toFlowNodes(store.nodes)
   const parent = flowNodes.find((n) => String(n.id) === String(props.parentId))
   if (!parent) return null
-  const siblingCount = store.nodes.filter(
-    (n) => String(n.parentId) === String(props.parentId),
-  ).length
-  return { x: parent.position.x + 250, y: siblingCount * 120 }
+  // Get the parent's children (matched by id from the store).
+  const childIds = new Set(
+    store.nodes
+      .filter((n) => String(n.parentId) === String(props.parentId))
+      .map((n) => String(n.id)),
+  )
+  const children = flowNodes.filter((n) => childIds.has(String(n.id)))
+  if (children.length === 0) {
+    // No children yet: place to the right of the parent.
+    return { x: parent.position.x + 250, y: parent.position.y }
+  }
+  // Place below the last child (the one with the highest y).
+  const lastChild = children.reduce((a, b) =>
+    a.position.y > b.position.y ? a : b,
+  )
+  return { x: lastChild.position.x, y: lastChild.position.y + 120 }
 }
 
 function createPayloadNode(f) {
