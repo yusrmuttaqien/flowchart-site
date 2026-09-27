@@ -44,6 +44,23 @@ describe('toFlowNodes', () => {
     const nodes = toFlowNodes(payload)
     expect(nodes.find((n) => n.id === 'd09c08').type).toBe('businessHours')
   })
+
+  it('uses a saved position over the computed tree layout', () => {
+    const withPosition = payload.map((n) =>
+      n.id === 'd09c08' ? { ...n, position: { x: 999, y: 42 } } : n,
+    )
+    const nodes = toFlowNodes(withPosition)
+    expect(nodes.find((n) => n.id === 'd09c08').position).toEqual({ x: 999, y: 42 })
+  })
+
+  it('falls back to the computed layout for nodes without a saved position', () => {
+    const mixed = payload.map((n) =>
+      n.id === 'd09c08' ? { ...n, position: { x: 999, y: 42 } } : n,
+    )
+    const nodes = toFlowNodes(mixed)
+    // The unsaved trigger keeps its computed depth-0 position.
+    expect(nodes.find((n) => n.id === '1').position.x).toBe(0)
+  })
 })
 
 describe('toFlowEdges', () => {

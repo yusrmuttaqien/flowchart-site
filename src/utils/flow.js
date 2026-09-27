@@ -2,9 +2,10 @@
  * @typedef {Object} PayloadNode
  * @property {string|number} id
  * @property {string|number} parentId  -1 for the root (trigger)
- * @property {string} [name]            absent on some nodes (e.g. trigger)
+ * @property {string} name
  * @property {'trigger'|'sendMessage'|'dateTime'|'addComment'|'dateTimeConnector'} type
  * @property {Object} data
+ * @property {{x:number,y:number}} [position] - saved drag position; wins over the computed tree layout
  */
 
 // Map payload type → vue-flow custom node type.
@@ -60,9 +61,12 @@ export function toFlowNodes(payload) {
     return {
       id: String(node.id),
       type: NODE_TYPE_MAP[node.type] ?? 'default',
-      position: { x: depth * COL_WIDTH, y: row * ROW_HEIGHT },
-      // pass the original payload through; renderers read data.name / data.data
-      data: { name: node.name, raw: node },
+      // A saved position (from a prior drag) wins over the computed tree layout,
+      // so dragged nodes keep their spot across reloads.
+      position: node.position ?? { x: depth * COL_WIDTH, y: row * ROW_HEIGHT },
+      // renderers read the shared envelope (name, description);
+      // ConnectorNode also reads raw for its success/failure icon
+      data: { name: node.name, description: node.description, raw: node },
     }
   })
 }
