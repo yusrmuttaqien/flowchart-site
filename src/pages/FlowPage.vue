@@ -38,9 +38,7 @@ function onNodeClick({ node }) {
 
 <template>
   <FlowCanvas @node-click="onNodeClick" @add-child="onAddChild" />
-  <Transition>
-    <NodeDetails :node-id="selectedNodeId" v-if="selectedNodeId" />
-  </Transition>
+  <NodeDetails :node-id="selectedNodeId" v-if="selectedNodeId" />
 
   <div class="toolbar">
     <button :disabled="!store.canUndo" @click="store.undo()">↩ Undo</button>
@@ -50,16 +48,6 @@ function onNodeClick({ node }) {
 </template>
 
 <style scoped>
-.v-enter-active,
-.v-leave-active {
-  transition: transform 0.5s ease;
-}
-
-.v-enter-from,
-.v-leave-to {
-  transform: translateX(100%);
-}
-
 .toolbar {
   position: absolute;
   top: 16px;
