@@ -3,6 +3,7 @@ import { reactive, computed, ref, onMounted } from 'vue'
 import { useMutation } from '@tanstack/vue-query'
 import { useFlowStore } from '../stores/flow.js'
 import * as api from '../api/flow.js'
+import { toFlowNodes } from '../utils/flow.js'
 
 // parentId is the node the + was clicked on (null for the top-level button).
 const props = defineProps({
@@ -40,6 +41,32 @@ const errors = computed(() => {
   return e
 })
 
+// Place the new node below its parent's last child (or to the right of the
+// parent if it has no children yet). This is a one-time initial position;
+// the user can still drag it afterwards.
+function getNewNodePosition() {
+  if (props.parentId == null) return null
+  const flowNodes = toFlowNodes(store.nodes)
+  const parent = flowNodes.find((n) => String(n.id) === String(props.parentId))
+  if (!parent) return null
+  // Get the parent's children (matched by id from the store).
+  const childIds = new Set(
+    store.nodes
+      .filter((n) => String(n.parentId) === String(props.parentId))
+      .map((n) => String(n.id)),
+  )
+  const children = flowNodes.filter((n) => childIds.has(String(n.id)))
+  if (children.length === 0) {
+    // No children yet: place to the right of the parent.
+    return { x: parent.position.x + 250, y: parent.position.y }
+  }
+  // Place below the last child (the one with the highest y).
+  const lastChild = children.reduce((a, b) =>
+    a.position.y > b.position.y ? a : b,
+  )
+  return { x: lastChild.position.x, y: lastChild.position.y + 120 }
+}
+
 function createPayloadNode(f) {
   const base = {
     id: crypto.randomUUID(),
@@ -47,6 +74,8 @@ function createPayloadNode(f) {
     description: f.description.trim(),
     parentId: props.parentId ?? null,
   }
+  const pos = getNewNodePosition()
+  if (pos) base.position = pos
 
   if (f.type === 'sendMessage')
     return {

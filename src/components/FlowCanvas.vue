@@ -1,5 +1,5 @@
 <script setup>
-import { computed, markRaw, watch } from 'vue'
+import { computed, markRaw, watch, ref, onMounted, nextTick } from 'vue'
 import { useQuery, useMutation } from '@tanstack/vue-query'
 import { VueFlow } from '@vue-flow/core'
 
@@ -14,8 +14,10 @@ import BusinessHoursNode from './nodes/BusinessHoursNode.vue'
 import ConnectorNode from './nodes/ConnectorNode.vue'
 
 const emit = defineEmits(['node-click', 'add-child'])
+const vueFlowRef = ref(null)
 
 const STORAGE_KEY = 'flowchart-site:nodes:v1'
+const VIEWPORT_KEY = 'flowchart-site:viewport:v1'
 
 const store = useFlowStore()
 // Server state: the simulated API reads the persisted copy (or the seed).
@@ -49,12 +51,56 @@ const nodeTypes = {
   connector: markRaw(ConnectorNode),
 }
 
+// Center the tree in the canvas on first load (no saved viewport).
+function centerTree() {
+  const flowNodes = toFlowNodes(store.nodes)
+  if (flowNodes.length === 0) return
+  const xs = flowNodes.map((n) => n.position.x)
+  const ys = flowNodes.map((n) => n.position.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const canvasEl = document.querySelector('.vue-flow')
+  if (!canvasEl || !vueFlowRef.value) return
+  const rect = canvasEl.getBoundingClientRect()
+  const offsetX = (rect.width - (maxX - minX)) / 2 - minX
+  const offsetY = (rect.height - (maxY - minY)) / 2 - minY
+  vueFlowRef.value.setViewport({ x: offsetX, y: offsetY, zoom: 1 })
+}
+
 watch(
   () => data.value,
-  (payload) => {
-    if (payload) store.init(payload)
+  async (payload) => {
+    if (!payload) return
+    store.init(payload)
+    await nextTick()
+    // Center the tree on first load (no saved viewport); otherwise the
+    // saved viewport is restored in onMounted.
+    if (!savedViewport) centerTree()
   },
 )
+
+// Load the saved viewport (synchronously) so we can restore it on mount.
+let savedViewport = null
+try {
+  const raw = localStorage.getItem(VIEWPORT_KEY)
+  if (raw) savedViewport = JSON.parse(raw)
+} catch {
+  localStorage.removeItem(VIEWPORT_KEY)
+}
+
+onMounted(() => {
+  if (savedViewport && vueFlowRef.value) {
+    vueFlowRef.value.setViewport(savedViewport)
+  }
+})
+
+// Persist the canvas pan/zoom on move-end.
+function onMoveEnd({ flowTransform }) {
+  const { x, y, zoom } = flowTransform
+  localStorage.setItem(VIEWPORT_KEY, JSON.stringify({ x, y, zoom }))
+}
 
 // Thread an add-child handler into each node's data so the + button on a
 // node can ask FlowPage to open the create modal with this node as parent.
@@ -71,16 +117,25 @@ function onDragStop({ node }) {
   updatePosition.mutate({ id: node.id, position: { ...node.position } })
 }
 const edges = computed(() => toFlowEdges(store.nodes))
+
+// Reset the canvas: center the tree. Exposed so FlowPage's reset button
+// can call it.
+function resetViewport() {
+  centerTree()
+}
+defineExpose({ resetViewport })
 </script>
 
 <template>
   <VueFlow
+    ref="vueFlowRef"
     class="vue-flow"
     :nodes="nodes"
     :edges="edges"
     :node-types="nodeTypes"
     @node-click="emit('node-click', $event)"
     @node-drag-stop="onDragStop"
+    @move-end="onMoveEnd"
   />
 </template>
 
