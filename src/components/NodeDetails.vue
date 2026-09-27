@@ -1,12 +1,25 @@
 <script setup>
 import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useMutation } from '@tanstack/vue-query'
 import { useFlowStore } from '../stores/flow.js'
+import * as api from '../api/flow.js'
 
 const props = defineProps({ nodeId: String })
 const store = useFlowStore()
 const router = useRouter()
 const titleInputRef = ref(null)
+
+// Every mutation hits the simulated API, then mirrors the result into the
+// store (which snapshots for undo/redo and persists via the FlowCanvas watch).
+const { mutate: patchNode } = useMutation({
+  mutationFn: ({ id, patch }) => api.updateNode(id, patch),
+  onSuccess: (_res, { id, patch }) => store.updateNode(id, patch),
+})
+const { mutate: removeNode } = useMutation({
+  mutationFn: (id) => api.deleteNode(id),
+  onSuccess: (_res, id) => store.deleteNode(id),
+})
 
 // Keyboard a11y: focus the title field on open; Escape closes the drawer.
 onMounted(() => titleInputRef.value?.focus())
@@ -43,13 +56,16 @@ watch(
 )
 
 function commitTitle() {
-  store.updateNode(node.value.id, { name: title.value })
+  patchNode({ id: node.value.id, patch: { name: title.value } })
 }
 function commitDescription() {
-  store.updateNode(node.value.id, { description: description.value })
+  patchNode({ id: node.value.id, patch: { description: description.value } })
 }
 function commitComment() {
-  store.updateNode(node.value.id, { data: { ...node.value.data, comment: comment.value } })
+  patchNode({
+    id: node.value.id,
+    patch: { data: { ...node.value.data, comment: comment.value } },
+  })
 }
 // Commits the text part of the payload, preserving every non-text part
 // (attachments) via .map.
@@ -58,7 +74,7 @@ function commitMessage() {
   const payload = (n.data.payload ?? []).map((p) =>
     p.type === 'text' ? { ...p, text: messageText.value } : p,
   )
-  store.updateNode(n.id, { data: { ...n.data, payload } })
+  patchNode({ id: n.id, patch: { data: { ...n.data, payload } } })
 }
 
 // ---- sendMessage: attachments ----
@@ -68,12 +84,15 @@ const attachments = computed(() =>
 
 function removeAttachment(url) {
   const n = node.value
-  store.updateNode(n.id, {
-    data: {
-      ...n.data,
-      payload: n.data.payload.filter(
-        (p) => !(p.type === 'attachment' && p.attachment === url),
-      ),
+  patchNode({
+    id: n.id,
+    patch: {
+      data: {
+        ...n.data,
+        payload: n.data.payload.filter(
+          (p) => !(p.type === 'attachment' && p.attachment === url),
+        ),
+      },
     },
   })
 }
@@ -85,13 +104,16 @@ function onFileChange(e) {
   const reader = new FileReader()
   reader.onload = () => {
     const n = node.value
-    store.updateNode(n.id, {
-      data: {
-        ...n.data,
-        payload: [
-          ...(n.data.payload ?? []),
-          { type: 'attachment', attachment: reader.result },
-        ],
+    patchNode({
+      id: n.id,
+      patch: {
+        data: {
+          ...n.data,
+          payload: [
+            ...(n.data.payload ?? []),
+            { type: 'attachment', attachment: reader.result },
+          ],
+        },
       },
     })
   }
@@ -106,21 +128,23 @@ const newTime = reactive({ day: 'mon', startTime: '09:00', endTime: '17:00' })
 
 function addTime() {
   const n = node.value
-  store.updateNode(n.id, {
-    data: { ...n.data, times: [...n.data.times, { ...newTime }] },
+  patchNode({
+    id: n.id,
+    patch: { data: { ...n.data, times: [...n.data.times, { ...newTime }] } },
   })
 }
 
 function removeTime(i) {
   const n = node.value
-  store.updateNode(n.id, {
-    data: { ...n.data, times: n.data.times.filter((_, j) => j !== i) },
+  patchNode({
+    id: n.id,
+    patch: { data: { ...n.data, times: n.data.times.filter((_, j) => j !== i) } },
   })
 }
 
 // ---- shared ----
 function deleteNode() {
-  store.deleteNode(props.nodeId)
+  removeNode(props.nodeId)
   router.push('/') // node gone → route no longer valid → drawer closes
 }
 </script>

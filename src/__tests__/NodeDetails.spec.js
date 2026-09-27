@@ -2,9 +2,19 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 
 import NodeDetails from '../components/NodeDetails.vue'
 import { useFlowStore } from '../stores/flow.js'
+
+// The mutations hit a simulated API; mock it to resolve immediately so the
+// tests don't wait on the simulated network delay.
+vi.mock('../api/flow.js', () => ({
+  listNodes: () => Promise.resolve([]),
+  createNode: (node) => Promise.resolve(node),
+  updateNode: (id, patch) => Promise.resolve({ id, ...patch }),
+  deleteNode: (id) => Promise.resolve({ id }),
+}))
 
 // Mount NodeDetails against a real memory router so router.push is exercised.
 // One pinia instance is shared between the test and the component.
@@ -22,9 +32,10 @@ function mountDetails(node, nodeId) {
     ],
   })
 
+  const queryClient = new QueryClient()
   const wrapper = mount(NodeDetails, {
     props: { nodeId },
-    global: { plugins: [pinia, router] },
+    global: { plugins: [pinia, router, [VueQueryPlugin, { queryClient }]] },
   })
   return { wrapper, store, router }
 }
@@ -82,7 +93,7 @@ describe('NodeDetails', () => {
     const { wrapper, store } = mountDetails(sendMsg, 'd09c08')
     wrapper.find('input').setValue('Renamed')
     await wrapper.find('input').trigger('change')
-    expect(store.nodeById('d09c08')?.name).toBe('Renamed')
+    await vi.waitFor(() => expect(store.nodeById('d09c08')?.name).toBe('Renamed'))
   })
 
   it('commits a message edit while preserving attachments', async () => {
@@ -91,23 +102,27 @@ describe('NodeDetails', () => {
     const textareas = wrapper.findAll('textarea')
     textareas[1].setValue('Updated')
     await textareas[1].trigger('change')
-    const payload = store.nodeById('d09c08').data.payload
-    expect(payload.find((p) => p.type === 'text').text).toBe('Updated')
-    expect(payload.find((p) => p.type === 'attachment')).toBeTruthy() // attachment survives
+    await vi.waitFor(() => {
+      const payload = store.nodeById('d09c08').data.payload
+      expect(payload.find((p) => p.type === 'text').text).toBe('Updated')
+      expect(payload.find((p) => p.type === 'attachment')).toBeTruthy() // attachment survives
+    })
   })
 
   it('removes an attachment', async () => {
     const { wrapper, store } = mountDetails(sendMsg, 'd09c08')
     wrapper.find('.attachment button').trigger('click')
-    const payload = store.nodeById('d09c08').data.payload
-    expect(payload.find((p) => p.type === 'attachment')).toBeUndefined()
+    await vi.waitFor(() => {
+      const payload = store.nodeById('d09c08').data.payload
+      expect(payload.find((p) => p.type === 'attachment')).toBeUndefined()
+    })
   })
 
   it('adds a business-hours time row', async () => {
     const node = { id: 'b1', name: 'B', description: 'd', type: 'dateTime', parentId: 1, data: { times: [], timezone: 'UTC', action: 'businessHours', connectors: [] } }
     const { wrapper, store } = mountDetails(node, 'b1')
     wrapper.find('.picker button').trigger('click')
-    expect(store.nodeById('b1').data.times).toHaveLength(1)
+    await vi.waitFor(() => expect(store.nodeById('b1').data.times).toHaveLength(1))
   })
 
   it('Delete Node removes the node and navigates to /', async () => {
@@ -119,7 +134,7 @@ describe('NodeDetails', () => {
     wrapper.find('.delete').trigger('click')
     await router.isReady()
 
-    expect(store.nodes).toHaveLength(0)
+    await vi.waitFor(() => expect(store.nodes).toHaveLength(0))
     expect(router.currentRoute.value.path).toBe('/')
   })
 

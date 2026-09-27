@@ -1,10 +1,11 @@
 <script setup>
 import { computed, markRaw, watch } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useMutation } from '@tanstack/vue-query'
 import { VueFlow } from '@vue-flow/core'
 
 import { toFlowNodes, toFlowEdges } from '../utils/flow.js'
 import { useFlowStore } from '../stores/flow.js'
+import * as api from '../api/flow.js'
 
 import TriggerNode from './nodes/TriggerNode.vue'
 import SendMessageNode from './nodes/SendMessageNode.vue'
@@ -17,26 +18,14 @@ const emit = defineEmits(['node-click', 'add-child'])
 const STORAGE_KEY = 'flowchart-site:nodes:v1'
 
 const store = useFlowStore()
+// Server state: the simulated API reads the persisted copy (or the seed).
 const { data } = useQuery({
   queryKey: ['flow'],
-  queryFn: async () => {
-    // Persistence: a saved copy wins over the seed payload; corrupt data
-    // falls through to the fetch.
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch {
-        localStorage.removeItem(STORAGE_KEY)
-      }
-    }
-    const res = await fetch(`${import.meta.env.BASE_URL}payload.json`)
-    if (!res.ok) throw new Error(`payload fetch failed: ${res.status}`)
-    return res.json()
-  },
+  queryFn: api.listNodes,
 })
 
-// Save on every change (deep — nodes are nested).
+// Single persistence path: a deep watch catches every store change —
+// mutations AND undo/redo — and writes it to localStorage.
 watch(
   () => store.nodes,
   (nodes) => {
@@ -44,6 +33,13 @@ watch(
   },
   { deep: true },
 )
+
+// Dragged-node position: hit the simulated API, then mirror the result into
+// the store (which toFlowNodes and the persistence watch both read).
+const updatePosition = useMutation({
+  mutationFn: ({ id, position }) => api.updateNode(id, { position }),
+  onSuccess: (_node, { id, position }) => store.updateNode(id, { position }),
+})
 
 const nodeTypes = {
   trigger: markRaw(TriggerNode),
@@ -72,7 +68,7 @@ const nodes = computed(() =>
 // Persist a dragged node's position: vue-flow reports the final position on
 // drag-stop; saving it to the store makes toFlowNodes (and localStorage) keep it.
 function onDragStop({ node }) {
-  store.updateNode(node.id, { position: { ...node.position } })
+  updatePosition.mutate({ id: node.id, position: { ...node.position } })
 }
 const edges = computed(() => toFlowEdges(store.nodes))
 </script>

@@ -1,6 +1,8 @@
 <script setup>
 import { reactive, computed, ref, onMounted } from 'vue'
+import { useMutation } from '@tanstack/vue-query'
 import { useFlowStore } from '../stores/flow.js'
+import * as api from '../api/flow.js'
 
 // parentId is the node the + was clicked on (null for the top-level button).
 const props = defineProps({
@@ -10,6 +12,12 @@ const props = defineProps({
 const emit = defineEmits(['close'])
 const store = useFlowStore()
 const firstFieldRef = ref(null)
+
+// Hits the simulated API, then mirrors the new node into the store.
+const { mutate: createNode } = useMutation({
+  mutationFn: (node) => api.createNode(node),
+  onSuccess: (node) => store.addNode(node),
+})
 
 // Keyboard a11y: focus the first field on open; Escape dismisses.
 onMounted(() => firstFieldRef.value?.focus())
@@ -57,7 +65,7 @@ function createPayloadNode(f) {
 
 function submit() {
   if (Object.keys(errors.value).length) return
-  store.addNode(createPayloadNode(form))
+  createNode(createPayloadNode(form))
   emit('close')
 }
 </script>

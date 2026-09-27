@@ -49,10 +49,10 @@ npm run dev        # start the dev server (http://localhost:5173)
 
 ### State is split by ownership
 
-- **TanStack Query owns server state** — the node payload. It's fetched from `payload.json`, cached with `staleTime: Infinity` (the data is static for this app), and never refetched on focus.
+- **TanStack Query owns server state** — the node payload. `useQuery` fetches it from a simulated REST API (`src/api/flow.js`), and create/update/delete flow through `useMutation` against the same API. The API is async (it simulates a network round-trip) and reads the persisted copy, falling back to the seed `payload.json`.
 - **Pinia owns UI state** — the working copy of the graph plus the undo/redo stacks.
 
-The two never duplicate each other: Query hands the payload to the store once (`store.init`), and the store is the single source of truth for everything the UI edits.
+The two never duplicate each other: Query hands the payload to the store once (`store.init`), and the store is the single source of truth for everything the UI edits. Each `useMutation` hits the API, then mirrors the result into the store on success (`onSuccess`) — so the store (and its undo/redo history) stays authoritative while the mutations satisfy the "Query mutations" requirement.
 
 ### The payload is a tree, not a graph
 
@@ -93,11 +93,11 @@ Each mutating action (`addNode` / `updateNode` / `deleteNode`) pushes a deep clo
 
 ### Persistence
 
-A deep `watch` on the store's `nodes` writes to localStorage on every change. On load, a saved copy **wins over** the seed payload; corrupt data falls through to the fetch. Attachments are stored as **data URLs** (via `FileReader`) so they survive persistence without a backend.
+A deep `watch` on the store's `nodes` is the **single persistence path**: it writes to localStorage on every change, catching both the `useMutation` writes and undo/redo restores. On load, a saved copy **wins over** the seed payload; corrupt data falls through to the fetch. Attachments are stored as **data URLs** (via `FileReader`) so they survive persistence without a backend.
 
 ### Node positions persist
 
-Positions are normally **computed** from the tree layout (`toFlowNodes`: depth × 250px, row × 120px) — the payload has none. When a node is dragged, `@node-drag-stop` saves its final position onto the node (`store.updateNode(id, { position })`). `toFlowNodes` then prefers a saved `node.position` over the computed layout, so dragged nodes keep their spot across reloads. Because the position lives in the store, it's persisted by the same watch and is **undoable** (one drag = one undo step). Nodes that were never dragged still use the computed layout.
+Positions are normally **computed** from the tree layout (`toFlowNodes`: depth × 250px, row × 120px) — the payload has none. When a node is dragged, `@node-drag-stop` saves its final position via a `useMutation` (the API call, then `store.updateNode(id, { position })` on success). `toFlowNodes` then prefers a saved `node.position` over the computed layout, so dragged nodes keep their spot across reloads. Because the position lives in the store, it's persisted by the same watch and is **undoable** (one drag = one undo step). Nodes that were never dragged still use the computed layout.
 
 ### Attachments have no backend
 
@@ -118,5 +118,5 @@ A `ResizeObserver` stub lives in `src/__tests__/setup.js` because jsdom lacks it
 ## Production notes
 
 - **TypeScript** is the natural extension — the spec asked for JS, but the payload's mixed shapes (mixed ids, mixed `payload` arrays) are exactly what a type system would tighten.
-- **Real backend**: swap the `queryFn` fetch for an API and add mutations (`useMutation`) for create/update/delete; the store's actions are already the seam for that.
+- **Real backend**: the simulated API in `src/api/flow.js` is the seam — point its functions at real HTTP endpoints and the `useQuery`/`useMutation` wiring already works unchanged.
 - **Accessibility**: the modal and drawer focus their first field on open and close on **Esc**; both expose ARIA roles (`dialog` / `complementary`). A full focus trap is the remaining a11y gap.

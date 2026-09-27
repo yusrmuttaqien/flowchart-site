@@ -1,13 +1,22 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 
 import CreateNodeModal from '../components/CreateNodeModal.vue'
 import { useFlowStore } from '../stores/flow.js'
 
+// The create mutation hits a simulated API; mock it to resolve immediately.
+vi.mock('../api/flow.js', () => ({
+  listNodes: () => Promise.resolve([]),
+  createNode: (node) => Promise.resolve(node),
+  updateNode: (id, patch) => Promise.resolve({ id, ...patch }),
+  deleteNode: (id) => Promise.resolve({ id }),
+}))
+
 function mountModal() {
   return mount(CreateNodeModal, {
-    global: { plugins: [createPinia()] },
+    global: { plugins: [createPinia(), [VueQueryPlugin, { queryClient: new QueryClient() }]] },
   })
 }
 
@@ -44,7 +53,7 @@ describe('CreateNodeModal', () => {
     wrapper.find('textarea').setValue('Hello there')
     await wrapper.find('button[type="submit"]').trigger('submit')
 
-    expect(store.nodes).toHaveLength(1)
+    await vi.waitFor(() => expect(store.nodes).toHaveLength(1))
     const node = store.nodes[0]
     expect(node.type).toBe('sendMessage')
     expect(node.name).toBe('My Message')
@@ -60,6 +69,7 @@ describe('CreateNodeModal', () => {
     wrapper.find('select').setValue('addComment')
     await wrapper.find('button[type="submit"]').trigger('submit')
 
+    await vi.waitFor(() => expect(store.nodes).toHaveLength(1))
     const node = store.nodes[0]
     expect(node.type).toBe('addComment')
     expect(node.data.comment).toBe('A comment')
@@ -73,6 +83,7 @@ describe('CreateNodeModal', () => {
     wrapper.find('select').setValue('dateTime')
     await wrapper.find('button[type="submit"]').trigger('submit')
 
+    await vi.waitFor(() => expect(store.nodes).toHaveLength(1))
     const node = store.nodes[0]
     expect(node.type).toBe('dateTime')
     expect(node.data.timezone).toBe('UTC')
@@ -104,13 +115,14 @@ describe('CreateNodeModal', () => {
   it('sets the parentId from the + that opened it', async () => {
     const wrapper = mount(CreateNodeModal, {
       props: { parentId: 'd09c08' },
-      global: { plugins: [createPinia()] },
+      global: { plugins: [createPinia(), [VueQueryPlugin, { queryClient: new QueryClient() }]] },
     })
     const store = useFlowStore()
     wrapper.find('input[type="text"]').setValue('Child')
     wrapper.find('textarea').setValue('A child message')
     await wrapper.find('button[type="submit"]').trigger('submit')
 
+    await vi.waitFor(() => expect(store.nodes).toHaveLength(1))
     expect(store.nodes[0].parentId).toBe('d09c08')
   })
 })
