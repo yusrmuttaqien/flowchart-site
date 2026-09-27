@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFlowStore } from '../stores/flow.js'
 
@@ -25,6 +25,20 @@ function closeCreate() {
 const route = useRoute()
 const router = useRouter()
 const selectedNodeId = computed(() => route.params.nodeId ?? null)
+
+// Update the browser tab title to reflect the selected node.
+watch(
+  selectedNodeId,
+  (id) => {
+    if (id) {
+      const node = store.nodeById(id)
+      document.title = node ? `Flowchart — ${node.name}` : 'Flowchart'
+    } else {
+      document.title = 'Flowchart'
+    }
+  },
+  { immediate: true },
+)
 
 // Reset: clear persisted state, reload the seed payload, reset the viewport.
 async function onReset() {

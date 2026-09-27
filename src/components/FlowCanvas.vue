@@ -51,6 +51,24 @@ const nodeTypes = {
   connector: markRaw(ConnectorNode),
 }
 
+// Center the tree in the canvas on first load (no saved viewport).
+function centerTree() {
+  const flowNodes = toFlowNodes(store.nodes)
+  if (flowNodes.length === 0) return
+  const xs = flowNodes.map((n) => n.position.x)
+  const ys = flowNodes.map((n) => n.position.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+  const canvasEl = document.querySelector('.vue-flow')
+  if (!canvasEl || !vueFlowRef.value) return
+  const rect = canvasEl.getBoundingClientRect()
+  const offsetX = (rect.width - (maxX - minX)) / 2 - minX
+  const offsetY = (rect.height - (maxY - minY)) / 2 - minY
+  vueFlowRef.value.setViewport({ x: offsetX, y: offsetY, zoom: 1 })
+}
+
 watch(
   () => data.value,
   async (payload) => {
@@ -59,9 +77,7 @@ watch(
     await nextTick()
     // Center the tree on first load (no saved viewport); otherwise the
     // saved viewport is restored in onMounted.
-    if (!savedViewport && vueFlowRef.value) {
-      vueFlowRef.value.fitView()
-    }
+    if (!savedViewport) centerTree()
   },
 )
 
