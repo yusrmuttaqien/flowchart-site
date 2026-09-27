@@ -1,5 +1,5 @@
 <script setup>
-import { computed, markRaw, watch, ref, onMounted } from 'vue'
+import { computed, markRaw, watch, ref, onMounted, nextTick } from 'vue'
 import { useQuery, useMutation } from '@tanstack/vue-query'
 import { VueFlow } from '@vue-flow/core'
 
@@ -53,8 +53,15 @@ const nodeTypes = {
 
 watch(
   () => data.value,
-  (payload) => {
-    if (payload) store.init(payload)
+  async (payload) => {
+    if (!payload) return
+    store.init(payload)
+    await nextTick()
+    // Center the tree on first load (no saved viewport); otherwise the
+    // saved viewport is restored in onMounted.
+    if (!savedViewport && vueFlowRef.value) {
+      vueFlowRef.value.fitView()
+    }
   },
 )
 
