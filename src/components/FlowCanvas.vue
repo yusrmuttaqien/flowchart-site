@@ -1,5 +1,5 @@
 <script setup>
-import { computed, markRaw, watch } from 'vue'
+import { computed, markRaw, watch, ref, onMounted } from 'vue'
 import { useQuery, useMutation } from '@tanstack/vue-query'
 import { VueFlow } from '@vue-flow/core'
 
@@ -14,8 +14,10 @@ import BusinessHoursNode from './nodes/BusinessHoursNode.vue'
 import ConnectorNode from './nodes/ConnectorNode.vue'
 
 const emit = defineEmits(['node-click', 'add-child'])
+const vueFlowRef = ref(null)
 
 const STORAGE_KEY = 'flowchart-site:nodes:v1'
+const VIEWPORT_KEY = 'flowchart-site:viewport:v1'
 
 const store = useFlowStore()
 // Server state: the simulated API reads the persisted copy (or the seed).
@@ -56,6 +58,27 @@ watch(
   },
 )
 
+// Load the saved viewport (synchronously) so we can restore it on mount.
+let savedViewport = null
+try {
+  const raw = localStorage.getItem(VIEWPORT_KEY)
+  if (raw) savedViewport = JSON.parse(raw)
+} catch {
+  localStorage.removeItem(VIEWPORT_KEY)
+}
+
+onMounted(() => {
+  if (savedViewport && vueFlowRef.value) {
+    vueFlowRef.value.setViewport(savedViewport)
+  }
+})
+
+// Persist the canvas pan/zoom on move-end.
+function onMoveEnd({ flowTransform }) {
+  const { x, y, zoom } = flowTransform
+  localStorage.setItem(VIEWPORT_KEY, JSON.stringify({ x, y, zoom }))
+}
+
 // Thread an add-child handler into each node's data so the + button on a
 // node can ask FlowPage to open the create modal with this node as parent.
 const nodes = computed(() =>
@@ -75,12 +98,14 @@ const edges = computed(() => toFlowEdges(store.nodes))
 
 <template>
   <VueFlow
+    ref="vueFlowRef"
     class="vue-flow"
     :nodes="nodes"
     :edges="edges"
     :node-types="nodeTypes"
     @node-click="emit('node-click', $event)"
     @node-drag-stop="onDragStop"
+    @move-end="onMoveEnd"
   />
 </template>
 
