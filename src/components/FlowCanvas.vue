@@ -118,10 +118,10 @@ function onDragStop({ node }) {
 }
 const edges = computed(() => toFlowEdges(store.nodes))
 
-// Reset the canvas pan/zoom to the default. Exposed so FlowPage's reset
-// button can call it.
+// Reset the canvas: center the tree. Exposed so FlowPage's reset button
+// can call it.
 function resetViewport() {
-  if (vueFlowRef.value) vueFlowRef.value.setViewport({ x: 0, y: 0, zoom: 1 })
+  centerTree()
 }
 defineExpose({ resetViewport })
 </script>
